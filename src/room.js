@@ -31,10 +31,10 @@ import {
  *     from the socket itself.
  */
 export class RelayRoom extends DurableObject {
-  constructor(ctx, state) {
-    super(ctx, state);
+  constructor(ctx, env) {
+    super(ctx, env);
     this.ctx = ctx;
-    this.state = state;
+    this.env = env;
   }
 
   /** The upgrade request arrives here. */
@@ -69,9 +69,9 @@ export class RelayRoom extends DurableObject {
 
     // A strictly increasing sequence number, so the newest socket of a role
     // is always identifiable even when two connections land in the same
-    // millisecond. It lives in storage, so it survives hibernation.
-    const seq = ((await this.state.storage.get('seq')) || 0) + 1;
-    await this.state.storage.put('seq', seq);
+    // millisecond. It lives in Durable Object storage, so it survives hibernation.
+    const seq = ((await this.ctx.storage.get('seq')) || 0) + 1;
+    await this.ctx.storage.put('seq', seq);
 
     this.ctx.acceptWebSocket(server, [role]);
     server.serializeAttachment({ role, key, seq });
