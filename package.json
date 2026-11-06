@@ -1,0 +1,15 @@
+{
+  "name": "ludo-dice-relay",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Relay that lets a Ludo Dice Controller on one network drive Ludo King on another",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

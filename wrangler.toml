@@ -1,0 +1,16 @@
+name = "ludo-dice-relay"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+
+# One Durable Object per key. The key is the object's name, so there is no
+# database to run and no lookup to do.
+[[durable_objects.bindings]]
+name = "RELAY"
+class_name = "RelayRoom"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["RelayRoom"]
+
+[observability]
+enabled = true
