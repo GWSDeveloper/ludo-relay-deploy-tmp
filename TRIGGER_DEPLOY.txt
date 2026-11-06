@@ -1,0 +1,3 @@
+Deploy triggered at 2026-11-06T10:18:00Z
+This file exists only to force a push so Cloudflare auto-deploys the latest Worker code (newest-wins reconnection logic).
+Safe to delete later.
