@@ -14,81 +14,42 @@ A Cloudflare Worker that lets a **Ludo Dice Controller** on one network drive a
 
 ## Roles
 
-| role  | what it is                                          |
-|-------|-----------------------------------------------------|
-| `game` | the bridge injected into the Ludo King APK          |
-| `ctrl`| the controller app                                  |
+| role   | what it is                                 |
+|--------|--------------------------------------------|
+| `game` | the bridge injected into the Ludo King APK |
+| `ctrl` | the controller app                         |
 
-Both connect to `wss://<host>/ws/<key>/<role>`. After a one line handshake
+Both connect to `wss://<host>/ws/<key>/<role>`. After a one-line handshake
 every frame is binary and carries raw bytes, so the QAServer protocol stays
-**end to end** - the controller speaks exactly the same protocol whether it is
-on the same Wi-Fi or across the internet.
+**end to end**.
 
-One key drives one game and one controller. A second controller with the same
-key is **replaced** (newest wins), not refused.
+One key drives one game and one controller. A second connection with the same
+role **replaces** the older one (newest wins) instead of being refused.
 
 ---
 
-## Updating an existing deployment
+## Deploy / auto-deploy
 
-Pull the new files over the old ones and deploy again:
+This repo is connected to Cloudflare Workers Builds.
+
+- Push to `main` → automatic deploy to  
+  **https://ludo-dice-relay.thehackerofficialtho.workers.dev**
+- Worker name in `wrangler.toml` must stay `ludo-dice-relay`.
+
+Local deploy:
 
 ```bash
 npm install
+npx wrangler login
 npm run deploy
 ```
 
-Two things changed, and both matter:
+### Important fix (do not revert)
 
-- **Newest wins.** If a controller or a game connects with a key that is
-  already in use, the older connection is closed with `ERR replaced` and the
-  new one takes over. Before, the newcomer was refused - and because the
-  refused socket was left in the room, the key was **locked out permanently**.
-  A killed app or a phone that lost signal could leave a key unusable until
-  the network finally noticed the dead connection.
-- The connection sequence number is kept in the Durable Object's storage, so
-  "the newest" is unambiguous even when two connections land in the same
-  millisecond, and it survives hibernation.
+`src/room.js` must use **`this.ctx.storage`** (not `this.state.storage`).
+The Durable Object constructor is `(ctx, env)`; storage lives on `ctx`.
+Using `state.storage` causes HTTP 500 on every WebSocket upgrade.
 
-## Deploy it (5 minutes, free)
+## Free plan
 
-You need a Cloudflare account and Node 18 or newer.
-
-```bash
-cd ludo-relay
-npm install          # installs wrangler
-npx wrangler login   # opens a browser
-npm run deploy
-```
-
-Wrangler prints something like:
-
-```
-Deployed ludo-dice-relay to b8f1....workers.dev
-```
-
-That URL is the relay address. It goes into the controller app, and into the
-game APK as `assets/relay.txt`.
-
-Test it:
-
-```bash
-curl https://b8f1....workers.dev/
-# ludo dice relay
-
-curl https://b8f1....workers.dev/ws/notakey/ctrl
-# expected /ws/<32 hex key>/<ctrl|game>
-```
-
-### Free plan limits
-
-The Free plan is enough for this, by a wide margin:
-
-| what | free allowance | what this uses |
-|---|---|---|
-| requests | 100,000 / day | one per dice command, plus the connection |
-| duration | 13,000 GB-s / day | **zero while idle** - the Hibernation API lets the Durable Object sleep while the sockets stay open |
-| storage | 5 GB | **none** - the key *is* the Durable Object's name |
-
-Outgoing messages are free. Only inbound ones are counted, and a dice command
-is one inbound message.
+Idle Durable Objects hibernate (no duration cost). Fine for this workload on the free plan.
